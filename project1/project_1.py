@@ -1,6 +1,6 @@
 import sqlite3
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
 
 conn = sqlite3.connect('data.db')
 
@@ -39,6 +39,10 @@ def show_table():
     beginning_message.pack_forget()
 
     tree.pack()  # Show the treeview
+    #show the buttons for CRUD operations
+    button_insert.pack()
+    button_update.pack()
+    button_delete.pack()
     # Execute a query to get the data from the selected table
     cur.execute(f"SELECT * FROM {selected_table}")
 
@@ -59,6 +63,84 @@ def show_table():
 #button to show the table when clicked
 button_display = tk.Button(root, text="Display Table", command=show_table)
 button_display.pack()
+
+# Add CRUD and predefined SQL functionality
+
+# Function to insert a new record into the selected table
+        # Function to insert a new record into the selected table
+def insert():
+    selected_table = choose_option.get()
+    if selected_table == "Select Table":
+        messagebox.showerror("Error", "Please select a table to insert data.")
+        return
+
+    # Prompt user for input with a form
+    new_data = simpledialog.askstring("Insert Record", f"Enter data for {selected_table} (comma-separated):")
+    if not new_data:
+        messagebox.showerror("Error", "No data entered. Please provide the required information.")
+        return
+
+    # Split the input and validate the number of values
+    values = tuple(new_data.split(","))
+    cur.execute(f"PRAGMA table_info({selected_table})")  # Get table column info
+    column_count = len(cur.fetchall())  # Count the number of columns in the table
+
+    if len(values) != column_count:
+        messagebox.showerror("Error", f"Incorrect number of values. {selected_table} requires {column_count} values.")
+        return
+
+    # Insert the data into the table
+    placeholders = ", ".join(["?" for _ in values])
+    try:
+        cur.execute(f"INSERT INTO {selected_table} VALUES ({placeholders})", values)
+        conn.commit()
+        messagebox.showinfo("Success", "Record inserted successfully!")
+        show_table()
+    except sqlite3.Error as e:
+        messagebox.showerror("Error", f"Failed to insert record: {e}")
+
+# Function to delete a selected record
+def delete():
+    selected_table = choose_option.get()
+    selected_item = tree.selection()
+    if not selected_item:
+        messagebox.showerror("Error", "Please select a record to delete.")
+        return
+    record = tree.item(selected_item)["values"]
+    primary_key = record[0]  # Assuming the first column is the primary key
+    cur.execute(f"DELETE FROM {selected_table} WHERE rowid = ?", (primary_key,))
+    conn.commit()
+    messagebox.showinfo("Success", "Record deleted successfully!")
+    show_table()
+
+# Function to update a selected record
+def update():
+    selected_table = choose_option.get()
+    selected_item = tree.selection()
+    if not selected_item:
+        messagebox.showerror("Error", "Please select a record to update.")
+        return
+    record = tree.item(selected_item)["values"]
+    updated_data = simpledialog.askstring("Update Record", f"Enter new data for {selected_table} (comma-separated):", initialvalue=",".join(map(str, record)))
+    if updated_data:
+        values = tuple(updated_data.split(","))
+        placeholders = ", ".join([f"{col}=?" for col in tree["columns"]])
+        cur.execute(f"UPDATE {selected_table} SET {placeholders} WHERE rowid = ?", (*values, record[0]))
+        conn.commit()
+        messagebox.showinfo("Success", "Record updated successfully!")
+        show_table()
+
+
+#buttons for CRUD operations and it will only show up after the user selects a table from the dropdown menu and clicks the display button
+button_insert = tk.Button(root, text="Insert Record", command=insert)
+button_insert.pack_forget()
+
+button_update = tk.Button(root, text="Update Record", command=update)
+button_update.pack_forget()
+
+button_delete = tk.Button(root, text="Delete Record", command=delete)
+button_delete.pack_forget()
+
 
 #this is the main loop that runs the tkinter window and keeps it open
 root.mainloop()
