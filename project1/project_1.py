@@ -142,6 +142,32 @@ button_delete = tk.Button(root, text="Delete Record", command=delete)
 button_delete.pack_forget()
 
 
+# Function to execute a predefined join query
+def predefined_join_query():
+    query = """
+    SELECT Material.name AS Material, Location.location_name AS Location, Category.category_name AS Category
+    FROM Material
+    JOIN Location ON Material.location_id = Location.location_id
+    JOIN Category ON Material.category_id = Category.category_id
+    """
+    cur.execute(query)
+    rows = cur.fetchall()
+    columns = [description[0] for description in cur.description]
+
+    # Clear the treeview and display the query results
+    tree.delete(*tree.get_children())
+    tree["columns"] = columns
+    for col in columns:
+        tree.heading(col, text=col)
+        tree.column(col, anchor="w")
+    for row in rows:
+        tree.insert("", tk.END, values=row)
+
+
+
+# Buttons for predefined SQL queries
+button_join_query = tk.Button(root, text="Show Join Query Results", command=predefined_join_query)
+button_join_query.pack()
 #this is the main loop that runs the tkinter window and keeps it open
 root.mainloop()
 
