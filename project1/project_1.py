@@ -168,6 +168,35 @@ def predefined_join_query():
 # Buttons for predefined SQL queries
 button_join_query = tk.Button(root, text="Show Join Query Results", command=predefined_join_query)
 button_join_query.pack()
+
+
+# Function to execute a predefined subquery
+def predefined_subquery():
+    query = """
+    SELECT name, amount
+    FROM Material
+    WHERE amount > (
+        SELECT AVG(amount)
+        FROM Material
+    )
+    """
+    cur.execute(query)
+    rows = cur.fetchall()
+    columns = [description[0] for description in cur.description]
+
+    # Clear the treeview and display the query results
+    tree.delete(*tree.get_children())
+    tree["columns"] = columns
+    for col in columns:
+        tree.heading(col, text=col)
+        tree.column(col, anchor="w")
+    for row in rows:
+        tree.insert("", tk.END, values=row)
+
+
+button_subquery = tk.Button(root, text="Show Subquery Results", command=predefined_subquery)
+button_subquery.pack()
+
 #this is the main loop that runs the tkinter window and keeps it open
 root.mainloop()
 
